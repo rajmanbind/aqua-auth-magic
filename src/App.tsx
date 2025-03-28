@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CustomerPage from "./pages/CustomerPage";
 import WorkerPage from "./pages/WorkerPage";
 import BrokerPage from "./pages/BrokerPage";
+import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 import useAuthStore from "./store/useAuthStore";
 
@@ -55,6 +56,7 @@ const App: React.FC = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/search" element={<SearchPage />} />
             
             <Route 
               path="/profile" 
