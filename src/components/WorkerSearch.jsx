@@ -49,12 +49,6 @@ const WorkerSearch = () => {
   // UI states
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedWorker, setSelectedWorker] = useState(null);
-  const [bookingDetails, setBookingDetails] = useState({
-    title: '',
-    description: '',
-    location: { address: '', city: '', state: '' }
-  });
 
   // Search workers query
   const { data: workers = [], refetch, isLoading } = useQuery({
@@ -101,70 +95,6 @@ const WorkerSearch = () => {
 
   const handlePriceRangeChange = (values) => {
     setPriceRange(values);
-  };
-
-  const handleSelectWorker = (worker) => {
-    setSelectedWorker(worker);
-    setBookingDetails({
-      ...bookingDetails,
-      workerId: worker._id
-    });
-  };
-
-  const handleBookNow = async () => {
-    try {
-      if (!bookingDetails.title || !bookingDetails.description) {
-        toast({
-          title: "Missing Information",
-          description: "Please provide a title and description for your booking.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          workerId: selectedWorker._id,
-          brokerId: selectedWorker.brokerId,
-          title: bookingDetails.title,
-          description: bookingDetails.description,
-          category: skills || 'other',
-          location: bookingDetails.location
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Booking failed');
-      }
-
-      const data = await response.json();
-      
-      toast({
-        title: "Booking Successful",
-        description: selectedWorker.brokerId 
-          ? "The broker has been notified and will assign the worker to your task."
-          : "The worker has been notified and will contact you soon.",
-      });
-
-      // Reset selection and details
-      setSelectedWorker(null);
-      setBookingDetails({
-        title: '',
-        description: '',
-        location: { address: '', city: '', state: '' }
-      });
-    } catch (error) {
-      console.error('Booking error:', error);
-      toast({
-        title: "Booking Error",
-        description: "Failed to book the worker. Please try again.",
-        variant: "destructive"
-      });
-    }
   };
 
   return (
@@ -335,14 +265,14 @@ const WorkerSearch = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {workers.map((worker) => (
-                <Card key={worker._id} className={`overflow-hidden border ${selectedWorker?._id === worker._id ? 'border-2 border-primary' : ''}`}>
+                <Card key={worker._id} className="overflow-hidden">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle>{worker.name}</CardTitle>
                         <div className="flex items-center mt-1 text-sm text-muted-foreground">
                           <Star className="h-4 w-4 mr-1 text-yellow-400" />
-                          <span>{worker.rating.toFixed(1)} ({worker.ratingCount} reviews)</span>
+                          <span>{worker.rating?.toFixed(1) || 'N/A'} ({worker.ratingCount || 0} reviews)</span>
                         </div>
                       </div>
                       <Badge variant={worker.brokerId ? "outline" : "secondary"}>
@@ -405,105 +335,10 @@ const WorkerSearch = () => {
                       </div>
                     )}
                   </CardContent>
-                  <CardFooter>
-                    <Button 
-                      onClick={() => handleSelectWorker(worker)} 
-                      variant={selectedWorker?._id === worker._id ? "default" : "outline"}
-                      className="w-full"
-                    >
-                      {selectedWorker?._id === worker._id ? "Selected" : "Select Worker"}
-                    </Button>
-                  </CardFooter>
                 </Card>
               ))}
             </div>
           </CardContent>
-        </Card>
-      )}
-
-      {/* Booking Form for Selected Worker */}
-      {selectedWorker && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Book {selectedWorker.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Task Title</Label>
-                <Input
-                  id="title"
-                  placeholder="E.g., Fix kitchen cabinet"
-                  value={bookingDetails.title}
-                  onChange={(e) => setBookingDetails({...bookingDetails, title: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Task Description</Label>
-                <Input
-                  id="description"
-                  placeholder="Describe what you need done"
-                  value={bookingDetails.description}
-                  onChange={(e) => setBookingDetails({...bookingDetails, description: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  placeholder="Your address"
-                  value={bookingDetails.location.address}
-                  onChange={(e) => setBookingDetails({
-                    ...bookingDetails, 
-                    location: {...bookingDetails.location, address: e.target.value}
-                  })}
-                  required
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="location-city"
-                    placeholder="City"
-                    value={bookingDetails.location.city}
-                    onChange={(e) => setBookingDetails({
-                      ...bookingDetails, 
-                      location: {...bookingDetails.location, city: e.target.value}
-                    })}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="location-state"
-                    placeholder="State"
-                    value={bookingDetails.location.state}
-                    onChange={(e) => setBookingDetails({
-                      ...bookingDetails, 
-                      location: {...bookingDetails.location, state: e.target.value}
-                    })}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setSelectedWorker(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleBookNow}>
-              Book Now
-            </Button>
-          </CardFooter>
         </Card>
       )}
     </div>
