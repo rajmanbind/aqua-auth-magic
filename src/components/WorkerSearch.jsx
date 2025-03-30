@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Star, Phone, MapPin, User } from "lucide-react";
+import { Star, Phone, MapPin, User, Search, DollarSign, GraduationCap, Briefcase } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Slider } from "@/components/ui/slider";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 
 const skillOptions = [
   { value: 'carpentry', label: 'Carpentry' },
@@ -21,11 +23,31 @@ const skillOptions = [
   { value: 'furniture', label: 'Furniture' }
 ];
 
+const educationOptions = [
+  { value: 'high_school', label: 'High School' },
+  { value: 'associate', label: 'Associate Degree' },
+  { value: 'bachelor', label: 'Bachelor\'s Degree' },
+  { value: 'master', label: 'Master\'s Degree' },
+  { value: 'phd', label: 'PhD' },
+  { value: 'vocational', label: 'Vocational Training' },
+  { value: 'certification', label: 'Professional Certification' }
+];
+
 const WorkerSearch = () => {
+  // Main search input
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Filter states
   const [skills, setSkills] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [rating, setRating] = useState('');
+  const [priceRange, setPriceRange] = useState([0, 100]); // Min and max hourly rate
+  const [yearsOfExperience, setYearsOfExperience] = useState('');
+  const [education, setEducation] = useState('');
+  
+  // UI states
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [bookingDetails, setBookingDetails] = useState({
@@ -36,15 +58,22 @@ const WorkerSearch = () => {
 
   // Search workers query
   const { data: workers = [], refetch, isLoading } = useQuery({
-    queryKey: ['workers', skills, city, state, rating],
+    queryKey: ['workers', searchQuery, skills, city, state, rating, priceRange, yearsOfExperience, education],
     queryFn: async () => {
       setIsSearching(true);
       try {
         const queryParams = new URLSearchParams();
+        if (searchQuery) queryParams.append('query', searchQuery);
         if (skills) queryParams.append('skills', skills);
         if (city) queryParams.append('city', city);
         if (state) queryParams.append('state', state);
         if (rating) queryParams.append('rating', rating);
+        if (priceRange[0] > 0 || priceRange[1] < 100) {
+          queryParams.append('minPrice', priceRange[0].toString());
+          queryParams.append('maxPrice', priceRange[1].toString());
+        }
+        if (yearsOfExperience) queryParams.append('experience', yearsOfExperience);
+        if (education) queryParams.append('education', education);
 
         const response = await fetch(`/api/users/search?${queryParams.toString()}`);
         if (!response.ok) throw new Error('Search failed');
@@ -68,6 +97,10 @@ const WorkerSearch = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     refetch();
+  };
+
+  const handlePriceRangeChange = (values) => {
+    setPriceRange(values);
   };
 
   const handleSelectWorker = (worker) => {
@@ -142,7 +175,18 @@ const WorkerSearch = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Main Search Input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search for workers by name, skills, or location..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="skills">Skills</Label>
                 <Select value={skills} onValueChange={setSkills}>
@@ -178,26 +222,106 @@ const WorkerSearch = () => {
                   onChange={(e) => setState(e.target.value)}
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="rating">Minimum Rating</Label>
-                <Select value={rating} onValueChange={setRating}>
-                  <SelectTrigger id="rating">
-                    <SelectValue placeholder="Any rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any rating</SelectItem>
-                    <SelectItem value="3">3+ stars</SelectItem>
-                    <SelectItem value="4">4+ stars</SelectItem>
-                    <SelectItem value="4.5">4.5+ stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             
-            <Button type="submit" disabled={isSearching || isLoading} className="w-full">
-              {isSearching ? "Searching..." : "Search Workers"}
-            </Button>
+            <div className="flex items-center justify-between">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="text-sm"
+              >
+                {showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}
+              </Button>
+              
+              <Button type="submit" disabled={isSearching || isLoading}>
+                {isSearching ? "Searching..." : "Search Workers"}
+              </Button>
+            </div>
+            
+            {/* Advanced Filters */}
+            {showAdvancedFilters && (
+              <div className="space-y-4 pt-2 border-t mt-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4 text-yellow-400" />
+                    <Label htmlFor="rating">Minimum Rating</Label>
+                  </div>
+                  <Select value={rating} onValueChange={setRating}>
+                    <SelectTrigger id="rating">
+                      <SelectValue placeholder="Any rating" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any rating</SelectItem>
+                      <SelectItem value="3">3+ stars</SelectItem>
+                      <SelectItem value="4">4+ stars</SelectItem>
+                      <SelectItem value="4.5">4.5+ stars</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <Label>Hourly Rate Range ($ per hour)</Label>
+                  </div>
+                  <div className="pt-4 px-2">
+                    <Slider 
+                      value={priceRange} 
+                      onValueChange={handlePriceRangeChange} 
+                      min={0} 
+                      max={100} 
+                      step={5}
+                    />
+                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
+                      <span>${priceRange[0]}</span>
+                      <span>${priceRange[1]}{priceRange[1] === 100 ? '+ ' : ''}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-blue-600" />
+                      <Label htmlFor="experience">Years of Experience</Label>
+                    </div>
+                    <Select value={yearsOfExperience} onValueChange={setYearsOfExperience}>
+                      <SelectTrigger id="experience">
+                        <SelectValue placeholder="Any experience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Any experience</SelectItem>
+                        <SelectItem value="1">1+ year</SelectItem>
+                        <SelectItem value="3">3+ years</SelectItem>
+                        <SelectItem value="5">5+ years</SelectItem>
+                        <SelectItem value="10">10+ years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-purple-600" />
+                      <Label htmlFor="education">Education Level</Label>
+                    </div>
+                    <Select value={education} onValueChange={setEducation}>
+                      <SelectTrigger id="education">
+                        <SelectValue placeholder="Any education" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any education</SelectItem>
+                        {educationOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -243,6 +367,27 @@ const WorkerSearch = () => {
                             {skill}
                           </Badge>
                         ))}
+                      </div>
+                    )}
+                    
+                    {worker.hourlyRate && (
+                      <div className="flex items-center text-sm mb-2">
+                        <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                        <span>${worker.hourlyRate}/hr</span>
+                      </div>
+                    )}
+                    
+                    {worker.yearsOfExperience && (
+                      <div className="flex items-center text-sm mb-2">
+                        <Briefcase className="h-4 w-4 mr-1 text-blue-600" />
+                        <span>{worker.yearsOfExperience} {worker.yearsOfExperience === 1 ? 'year' : 'years'} experience</span>
+                      </div>
+                    )}
+                    
+                    {worker.education && (
+                      <div className="flex items-center text-sm mb-2">
+                        <GraduationCap className="h-4 w-4 mr-1 text-purple-600" />
+                        <span>{worker.education}</span>
                       </div>
                     )}
                     

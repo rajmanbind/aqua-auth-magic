@@ -13,7 +13,7 @@ const SearchPage = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Find Workers</h1>
         <p className="text-muted-foreground mt-2">
-          Search for skilled workers based on skills, location, and ratings
+          Search for skilled workers based on name, skills, location, ratings, price, experience, and education
         </p>
       </div>
       
